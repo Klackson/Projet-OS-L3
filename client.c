@@ -29,22 +29,20 @@ int main(void){
     //Connecter socket client au socket serveur
     int id_co = connect(socketClient, (const struct sockaddr*)&addrClient, sizeof(addrClient));
     printf("id_co : %d\n", id_co);	//renvoie -1
-    printf("Connexion effectuee\n");
 
     User user;
     char question[25];
 
     //recption d'un message venant du serveur
     int longueur = recv(socketClient, question, 25, 0);
-    printf("C'est : %d \n", longueur);	//renvoie -1
+    printf("recv renvoie : %d \n", longueur);	//renvoie -1
     printf("%s\n", question);
-    printf("test1 \n");
 
     //Envoie d'un message au serveur
     scanf("%29s %99s", user.nom, user.message);
     printf("c'est %s %s \n", user.nom, user.message);	//ca marche, faut avoir un seul espace (donc 2 arguments) quand on tape dans le prompt
     send(socketClient, &user, sizeof(user), 0);
-    printf("test3 \n");
+    printf("test \n");
 
     close(socketClient);
   

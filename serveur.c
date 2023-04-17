@@ -40,7 +40,7 @@ int main(void){
 		exit(1);
 	}
     struct sockaddr_in addrServeur  = {0};
-    addrServeur.sin_addr.s_addr = inet_addr("127.0.0.1.");
+    addrServeur.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrServeur.sin_family = AF_INET;
     addrServeur.sin_port = htons(2002);    
 
