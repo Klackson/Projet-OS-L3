@@ -9,6 +9,13 @@
 #include <netinet/in.h>     
 #include <netdb.h>          
 
+/* A faire :
+	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
+	remplacer scanf() par fgets() car stock un string et donc plusieurs mots
+	comprendre pourquoi serveur.c affiche une ligne inutile apres un rcv() (boucle une fois pour rien en gros)
+	comprendre pourquoi si j'enlève la ligne " printf("mes : %s \n", user.message); " ça marche pas. Et pour resoudre ça, essayer de donner une valeur de défaut à user.message. Sauf que le = marche pas. Comprendre pourquoi
+ */
+
 
 #define MAX_CLIENTS 10
 
@@ -21,11 +28,16 @@ typedef struct {
 
 void *fonction(void *arg){
     int socket = *(int*) arg;
-    char question[] = "Que voulez vous envoyer ?";
-    User user;
-    send(socket, question, strlen(question)+1,0);   
-    recv(socket, &user, sizeof(user), 0);
-    printf("le message du client %s est : %s\n", user.nom, user.message);       //%s ou autre chose ?
+    User user; 
+    recv(socket, &user.nom, sizeof(user.nom), 0);
+    printf("le nom du client est : %s\n", user.nom);
+    printf("mes : %s \n", user.message);
+    while(1 && user.message!="fin"){
+    	//char question[] = "Que voulez vous envoyer ?";
+    	//send(socket, question, strlen(question)-2,0);  
+    	recv(socket, &user.message, sizeof(user.message), 0);
+    	printf("le message du client %s est : %s\n", user.nom, user.message);
+    }
     close(socket);
     free(arg);      //pas sur de quoi a quoi ca sert
     pthread_exit(NULL);
@@ -57,6 +69,7 @@ int main(void){
     for (int i=0; i<2; i++){
         struct sockaddr_in addrClient;
         socklen_t tailleClient = sizeof(addrClient);
+        
         //Accepter la connection
         int socketClient = accept(socketServeur, (struct sockaddr*)&addrClient, &tailleClient);
         printf("socketClient : %d \n", socketClient);

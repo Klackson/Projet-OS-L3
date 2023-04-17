@@ -9,18 +9,18 @@
 #include <netinet/in.h>     
 #include <netdb.h>          
 
+#define BUFFER 200
 
 //Definir la structure qui permet d'envoyer le message
 typedef struct{
     char nom[30];
-    char message[100]; 
+    char message[200]; 
 } User;
 
 
 int main(void){
     //Creer socket client
     int socketClient = socket(AF_INET, SOCK_STREAM, 0);
-    printf("socketClient : %d\n", socketClient);	//ca marche
     struct sockaddr_in addrClient = {0};
     addrClient.sin_addr.s_addr = inet_addr("127.0.0.1");
     addrClient.sin_family = AF_INET;
@@ -28,22 +28,24 @@ int main(void){
     
     //Connecter socket client au socket serveur
     int id_co = connect(socketClient, (const struct sockaddr*)&addrClient, sizeof(addrClient));
-    printf("id_co : %d\n", id_co);	//renvoie -1
+    if (id_co<0) {perror("erreur conection");}
 
     User user;
-    char question[25];
+    printf("Quel est votre nom d'utilisateur ? ");
+    scanf("%s\n", user.nom);
+    send(socketClient, &user.nom, sizeof(user.nom), 0);
+    while(1 && user.message!="fin"){
+    	//reception d'un message venant du serveur
+    	//char question[25];
+    	//if (recv(socketClient, question, 25, 0) < 0){perror("erreur reception");}  	
+    	//printf("%s\n", question);
 
-    //recption d'un message venant du serveur
-    int longueur = recv(socketClient, question, 25, 0);
-    printf("recv renvoie : %d \n", longueur);	//renvoie -1
-    printf("%s\n", question);
-
-    //Envoie d'un message au serveur
-    scanf("%29s %99s", user.nom, user.message);
-    printf("c'est %s %s \n", user.nom, user.message);	//ca marche, faut avoir un seul espace (donc 2 arguments) quand on tape dans le prompt
-    send(socketClient, &user, sizeof(user), 0);
-    printf("test \n");
-
+    	//Envoie d'un message au serveur
+    	printf("Que voulez vous envoyer ? ");
+    	scanf("%s \n", user.message);	
+    	if(send(socketClient, &user.message, sizeof(user.message), 0)<0){perror("message pas envoyé");}
+    	printf("message envoyé \n");
+    }
     close(socketClient);
   
     return 0;
