@@ -9,12 +9,12 @@
 #include <netinet/in.h>     
 #include <netdb.h>          
 
-#define BUFFER 200
+#define BUFFER_SIZE 100
 
 //Definir la structure qui permet d'envoyer le message
 typedef struct{
-    char nom[30];
-    char message[200]; 
+    char nom[BUFFER_SIZE];
+    char message[BUFFER_SIZE]; 
 } User;
 
 
@@ -30,11 +30,12 @@ int main(void){
     int id_co = connect(socketClient, (const struct sockaddr*)&addrClient, sizeof(addrClient));
     if (id_co<0) {perror("erreur conection");}
 
-    User user;
+    User userb;
+ 
     printf("Quel est votre nom d'utilisateur ? ");
-    scanf("%s\n", user.nom);
-    send(socketClient, &user.nom, sizeof(user.nom), 0);
-    while(1 && user.message!="fin"){
+    scanf("%s", userb.nom);
+    send(socketClient, &userb.nom, sizeof(userb.nom), 0);
+    while(1){
     	//reception d'un message venant du serveur
     	//char question[25];
     	//if (recv(socketClient, question, 25, 0) < 0){perror("erreur reception");}  	
@@ -42,8 +43,13 @@ int main(void){
 
     	//Envoie d'un message au serveur
     	printf("Que voulez vous envoyer ? ");
-    	scanf("%s \n", user.message);	
-    	if(send(socketClient, &user.message, sizeof(user.message), 0)<0){perror("message pas envoyé");}
+    	scanf("%s", userb.message);	
+    	send(socketClient, &userb.message, sizeof(userb.message), 0);
+    	if (strcmp(userb.message, "fin")==0){
+    	    printf("Déconnexion");
+    	    sleep(1);
+    	    break;
+    	}
     	printf("message envoyé \n");
     }
     close(socketClient);

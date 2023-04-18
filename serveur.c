@@ -12,34 +12,44 @@
 /* A faire :
 	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
 	remplacer scanf() par fgets() car stock un string et donc plusieurs mots
-	comprendre pourquoi serveur.c affiche une ligne inutile apres un rcv() (boucle une fois pour rien en gros)
-	comprendre pourquoi si j'enlève la ligne " printf("mes : %s \n", user.message); " ça marche pas. Et pour resoudre ça, essayer de donner une valeur de défaut à user.message. Sauf que le = marche pas. Comprendre pourquoi
+	Variable globale pour stocker les messages de tous les utilisateurs. Faire stucture qui est une matrice de messages.
+	Condition d'arrêt du programme (et pourquoi si ctr C du client, message à l'infini du serveur)
+	
+	
+   Resolu:
+   	Pourquoi message vide au début
+   	Pourquoi décalage affichage
  */
 
 
 #define MAX_CLIENTS 10
+#define BUFFER_SIZE 100
 
 //Definir la structure qui permet d'envoyer le message
 typedef struct {
-    char nom[30];
-    char message[100]; 
+    char nom[BUFFER_SIZE];
+    char message[BUFFER_SIZE]; 
 } User;
 
 
 void *fonction(void *arg){
     int socket = *(int*) arg;
-    User user; 
-    recv(socket, &user.nom, sizeof(user.nom), 0);
-    printf("le nom du client est : %s\n", user.nom);
-    printf("mes : %s \n", user.message);
-    while(1 && user.message!="fin"){
+    User userb; 
+    memset(userb.message, '\0', BUFFER_SIZE);
+    recv(socket, &userb.nom, sizeof(userb.nom), 0);
+    printf("le nom du client est : %s\n", userb.nom);
+    while(1){
     	//char question[] = "Que voulez vous envoyer ?";
     	//send(socket, question, strlen(question)-2,0);  
-    	recv(socket, &user.message, sizeof(user.message), 0);
-    	printf("le message du client %s est : %s\n", user.nom, user.message);
+    	recv(socket, &userb.message, sizeof(userb.message), 0);
+    	printf("le message du client %s est : %s\n", userb.nom, userb.message);
+    	if (strcmp(userb.message, "fin")==0){
+    	    printf("finito bebe ;) \n");
+    	    break;
+    	}
     }
     close(socket);
-    free(arg);      //pas sur de quoi a quoi ca sert
+    //free(arg);      //pas sur de quoi a quoi ca sert
     pthread_exit(NULL);
 }
 
@@ -65,7 +75,7 @@ int main(void){
     printf("Serveur ecoute \n");
 
     //Creer thread pour chaque client qui se connecte
-    pthread_t threads[2];
+    pthread_t clients[2];
     for (int i=0; i<2; i++){
         struct sockaddr_in addrClient;
         socklen_t tailleClient = sizeof(addrClient);
@@ -74,17 +84,13 @@ int main(void){
         int socketClient = accept(socketServeur, (struct sockaddr*)&addrClient, &tailleClient);
         printf("socketClient : %d \n", socketClient);
         printf("Connexion acceptee \n");
-
-        printf("Client %d \n", socketClient);
-
-        int *arg = malloc(sizeof(int));
-        *arg = socketClient;
-        pthread_create(&threads[i], NULL, fonction, arg);
+       
+        pthread_create(&clients[i], NULL, fonction, (void*)&socketClient);
     }
 
-    //Fermer les threads
+    //Fermer les clients
     for (int i=0; i<2; i++){
-        pthread_join(threads[i], NULL);
+        pthread_join(clients[i], NULL);
     }
 
     close(socketServeur);
