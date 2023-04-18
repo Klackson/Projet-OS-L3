@@ -10,8 +10,7 @@
 #include <netdb.h>          
 
 /* A faire :
-	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
-	remplacer scanf() par fgets() car stock un string et donc plusieurs mots
+	Message envoyé fait max 8 charactères!!! problème
 	Variable globale pour stocker les messages de tous les utilisateurs. Faire stucture qui est une matrice de messages.
 	Condition d'arrêt du programme (et pourquoi si ctr C du client, message à l'infini du serveur)
 	
@@ -19,6 +18,8 @@
    Resolu:
    	Pourquoi message vide au début
    	Pourquoi décalage affichage
+   	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
+   	remplacer scanf() par fgets() car stock un string et donc plusieurs mots. Corriger taille des char envoyés.
  */
 
 
@@ -32,7 +33,7 @@ typedef struct {
 } User;
 
 
-void *fonction(void *arg){
+void *th_client(void *arg){
     int socket = *(int*) arg;
     User userb; 
     memset(userb.message, '\0', BUFFER_SIZE);
@@ -41,10 +42,11 @@ void *fonction(void *arg){
     while(1){
     	//char question[] = "Que voulez vous envoyer ?";
     	//send(socket, question, strlen(question)-2,0);  
-    	recv(socket, &userb.message, sizeof(userb.message), 0);
-    	printf("le message du client %s est : %s\n", userb.nom, userb.message);
-    	if (strcmp(userb.message, "fin")==0){
-    	    printf("finito bebe ;) \n");
+    	char mes[BUFFER_SIZE];
+    	recv(socket, &mes, sizeof(mes), 0);
+    	printf("le message du client %s est : %s \n", userb.nom, mes);
+    	if (strcmp(mes, "fin")==0){
+    	    printf("finito bebe pour %s \n", userb.nom);
     	    break;
     	}
     }
@@ -85,7 +87,7 @@ int main(void){
         printf("socketClient : %d \n", socketClient);
         printf("Connexion acceptee \n");
        
-        pthread_create(&clients[i], NULL, fonction, (void*)&socketClient);
+        pthread_create(&clients[i], NULL, th_client, (void*)&socketClient);
     }
 
     //Fermer les clients

@@ -31,10 +31,16 @@ int main(void){
     if (id_co<0) {perror("erreur conection");}
 
     User userb;
- 
+
     printf("Quel est votre nom d'utilisateur ? ");
-    scanf("%s", userb.nom);
-    send(socketClient, &userb.nom, sizeof(userb.nom), 0);
+    fgets(userb.nom, BUFFER_SIZE, stdin);
+    
+    int len_nom = strlen(userb.nom);
+    char* nom_court = (char*)malloc(len_nom);
+    strncpy(nom_court, userb.nom, len_nom-1);
+    
+    send(socketClient, nom_court, sizeof(nom_court), 0);
+    
     while(1){
     	//reception d'un message venant du serveur
     	//char question[25];
@@ -43,11 +49,15 @@ int main(void){
 
     	//Envoie d'un message au serveur
     	printf("Que voulez vous envoyer ? ");
-    	scanf("%s", userb.message);	
-    	send(socketClient, &userb.message, sizeof(userb.message), 0);
-    	if (strcmp(userb.message, "fin")==0){
-    	    printf("Déconnexion");
-    	    sleep(1);
+    	fgets(userb.message, BUFFER_SIZE, stdin);
+    	
+    	int len_message = strlen(userb.message);
+    	char* message_court = (char*)malloc(len_message);
+    	strncpy(message_court, userb.message, len_message-1);	
+    	
+    	send(socketClient, message_court, sizeof(message_court), 0);
+    	if (strcmp(message_court, "fin")==0){
+    	    printf("Déconnexion effectuée \n");
     	    break;
     	}
     	printf("message envoyé \n");
