@@ -10,6 +10,7 @@
 #include <netdb.h>          
 
 #define BUFFER_SIZE 100
+#define MAX_MESSAGES 10
 
 //Definir la structure qui permet d'envoyer le message
 typedef struct{
@@ -41,7 +42,7 @@ int main(void){
     
     send(socketClient, nom_court, sizeof(nom_court), 0);
     
-    while(1){
+    for (int num_mes=0; num_mes<MAX_MESSAGES; num_mes++){
     	//reception d'un message venant du serveur
     	//char question[25];
     	//if (recv(socketClient, question, 25, 0) < 0){perror("erreur reception");}  	
@@ -55,13 +56,13 @@ int main(void){
     	char* message_court = (char*)malloc(len_message);
     	strncpy(message_court, userb.message, len_message-1);	
     	
-    	send(socketClient, message_court, sizeof(message_court), 0);
+    	send(socketClient, message_court, BUFFER_SIZE, 0);
     	if (strcmp(message_court, "fin")==0){
-    	    printf("Déconnexion effectuée \n");
     	    break;
     	}
     	printf("message envoyé \n");
     }
+    printf("Déconnexion effectuée \n");
     close(socketClient);
   
     return 0;
