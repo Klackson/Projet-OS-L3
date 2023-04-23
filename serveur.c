@@ -10,7 +10,7 @@
 #include <netdb.h>          
 
 /* A faire :
-	Pourquoi dans liste_messages le dernier message envoyé écrase les autres ?
+	
 	
 	
    Resolu:
@@ -23,6 +23,7 @@
    	Variable globale pour stocker les messages de tous les utilisateurs. Faire stucture qui est une matrice de messages.
    	Creer la matrice des messages et la remplire à la création
    	Condition d'arrêt du programme (et pourquoi si ctr C du client, message à l'infini du serveur)
+   	Pourquoi dans liste_messages le dernier message envoyé écrase les autres ? solution : char***, malloc et strcpy. Par ce que c'est des adresses qu'on modifie et ça fout le bordel vite
  */
 
 
@@ -66,15 +67,18 @@ void *th_client(void *arg){
     	printf("le message du client %s est : %s \n", userb.nom, mes);
     	
     	//Sauvegarder le message dans la liste liste_message
-    	strcpy(liste_messages[userb.id][num_mes], mes);
+    	//strcpy(liste_messages[userb.id][num_mes], mes);
     	
-    		liste_messages[userb.id][num_mes] = mes;
-    	printf("liste[0][0] = %s \n", liste_messages[0][0]);
+    	char** liste_ligne = liste_messages[userb.id];
+    	strcpy(liste_ligne[num_mes], mes);
+      	liste_messages[userb.id] = liste_ligne;
+    	printf("liste = %s \n", liste_messages[0][0]);
+    	printf("liste = %s \n", liste_messages[0][1]);
  
-    	/*
+    	
     	for (int ligne=0; ligne<MAX_CLIENTS; ligne++){
     	    for (int colonne=0; colonne<MAX_MESSAGES; colonne++){
-    		printf("liste[%d][%d] = %s \n", ligne, colonne, liste_messages[ligne][colonne]);}}*/
+    		printf("liste[%d][%d] = %s \n", ligne, colonne, liste_messages[ligne][colonne]);}}
     }
     printf("finito bebe pour %s \n", userb.nom);
     close(socket);
