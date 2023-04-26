@@ -10,7 +10,9 @@
 #include <netdb.h>          
 
 /* A faire :
-	
+	Fonction envoie_message qui envoie depuis le serveur à tous les clients
+	Client reçoit les messages
+	Faire une foncction format_message() qui reformate la longueur du message (cf client avant send()) + met les infos de qui l'envoie et à quelle heure.
 	
 	
    Resolu:
@@ -44,21 +46,24 @@ typedef struct {
 
 
 void *th_client(void *arg){
+
     //créer client
     int socket = *(int*) arg;
     User userb; 
     userb.id = id_client;
+    
+    //Envoyer son id au client
+    send(socket, &id_client, 1,0);
     id_client = id_client + 1;
     
     //Récupérer nom client
     recv(socket, &userb.nom, BUFFER_SIZE, 0);
-    printf("le nom du client est %s et son idenifiant %d \n", userb.nom, userb.id);
+    printf("Le nom du client est %s et son identifiant est %d \n", userb.nom, userb.id);
     
     //Récupérer les messages du clients, jusqu'à MAX_MESSAGES messages
     for (int num_mes=0; num_mes<MAX_MESSAGES; num_mes++){
-    	//char question[] = "Que voulez vous envoyer ?";
-    	//send(socket, question, strlen(question)-2,0);  
     	char mes[BUFFER_SIZE];
+    	
     	//Couper la communication si pas de reception (càd ctr+C du client) ou si le client dit "fin" 
     	if (recv(socket, &mes, BUFFER_SIZE, 0)==-1 || strcmp(mes, "fin")==0){
     	    break ;
@@ -67,19 +72,15 @@ void *th_client(void *arg){
     	printf("le message du client %s est : %s \n", userb.nom, mes);
     	
     	//Sauvegarder le message dans la liste liste_message
-    	//strcpy(liste_messages[userb.id][num_mes], mes);
-    	
     	char** liste_ligne = liste_messages[userb.id];
     	strcpy(liste_ligne[num_mes], mes);
       	liste_messages[userb.id] = liste_ligne;
-    	printf("liste = %s \n", liste_messages[0][0]);
-    	printf("liste = %s \n", liste_messages[0][1]);
- 
+      	
+      	//Envoyer le message à tout le monde
+      	envoyer_message(mes, userb.id, userb.nom);
     	
-    	for (int ligne=0; ligne<MAX_CLIENTS; ligne++){
-    	    for (int colonne=0; colonne<MAX_MESSAGES; colonne++){
-    		printf("liste[%d][%d] = %s \n", ligne, colonne, liste_messages[ligne][colonne]);}}
     }
+    //Lorsque le client a envoyé 10 messages ou demande la fin de la communication
     printf("finito bebe pour %s \n", userb.nom);
     close(socket);
     //free(arg);      //pas sur de quoi a quoi ca sert
@@ -87,15 +88,13 @@ void *th_client(void *arg){
 }
 
 
-int main(void){
-    //Remplir de "rien" le tableau des messages
-    /*for (int i=0; i<MAX_CLIENTS; i++){
-    	for (int j=0; j<MAX_MESSAGES; j++){
-    	    liste_messages[i][j] = (char*) malloc(BUFFER_SIZE * sizeof(char));
-	    memset(liste_messages[i][j], 0, BUFFER_SIZE);
-    	}
-    }*/
+void envoyer_message(char* message, int id_source, char* nom_source){
     
+}
+
+int main(void){
+
+    //Créer le tableau des messages
     liste_messages = malloc(MAX_CLIENTS * sizeof(char**));
     for (int i=0; i<MAX_CLIENTS; i++){
     	liste_messages[i] = malloc(MAX_MESSAGES * sizeof(char*));
@@ -130,8 +129,11 @@ int main(void){
         
         //Accepter la connection
         int socketClient = accept(socketServeur, (struct sockaddr*)&addrClient, &tailleClient);
-        printf("socketClient : %d \n", socketClient);
-        printf("Connexion acceptee \n");
+        if (socketClient < 0){
+        	perror("Erreur connexion\n");
+        	exit(1);
+        }
+        printf("Nouvelle connexion effectuée \n");
        
         pthread_create(&clients[i], NULL, th_client, (void*)&socketClient);
     }

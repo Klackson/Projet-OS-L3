@@ -14,8 +14,8 @@
 
 //Definir la structure qui permet d'envoyer le message
 typedef struct{
+    int id;
     char nom[BUFFER_SIZE];
-    char message[BUFFER_SIZE]; 
 } User;
 
 
@@ -32,10 +32,16 @@ int main(void){
     if (id_co<0) {perror("erreur conection");}
 
     User userb;
-
+    
+    //Recoit son id
+    recv(socketClient, &userb.id, 1, 0);
+    printf("id client : %d \n", userb.id);
+	
+    //Demander le nom
     printf("Quel est votre nom d'utilisateur ? ");
     fgets(userb.nom, BUFFER_SIZE, stdin);
     
+    //Envoie son nom
     int len_nom = strlen(userb.nom);
     char* nom_court = (char*)malloc(len_nom);
     strncpy(nom_court, userb.nom, len_nom-1);
@@ -49,12 +55,13 @@ int main(void){
     	//printf("%s\n", question);
 
     	//Envoie d'un message au serveur
+    	char mes[BUFFER_SIZE];
     	printf("Que voulez vous envoyer ? ");
-    	fgets(userb.message, BUFFER_SIZE, stdin);
+    	fgets(mes, BUFFER_SIZE, stdin);
     	
-    	int len_message = strlen(userb.message);
+    	int len_message = strlen(mes);
     	char* message_court = (char*)malloc(len_message);
-    	strncpy(message_court, userb.message, len_message-1);	
+    	strncpy(message_court, mes, len_message-1);	
     	
     	send(socketClient, message_court, BUFFER_SIZE, 0);
     	if (strcmp(message_court, "fin")==0){
@@ -62,6 +69,7 @@ int main(void){
     	}
     	printf("message envoyé \n");
     }
+    
     printf("Déconnexion effectuée \n");
     close(socketClient);
   
