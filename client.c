@@ -19,6 +19,30 @@ typedef struct{
 } User;
 
 
+char* format_string(char* string){
+    int len_string = strlen(string);
+    char* string_court = (char*)malloc(len_string);
+    strncpy(string_court, string, len_string-1);
+    return string_court;
+    free(string_court);
+}
+
+void* reception(void* arg){
+	int socket_client = *(int*)arg;
+	char message_serveur[BUFFER_SIZE];
+	while(1){
+		if (recv(socket_client, message_serveur, BUFFER_SIZE, 0)<0){
+			perror("erreur reception message du serveur");
+			break;
+    	}
+    	else {
+    		printf("\n%s \n", message_serveur);
+    		sleep(1);
+    	}
+    }
+    pthread_exit(NULL);
+}
+
 int main(void){
     //Creer socket client
     int socketClient = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,7 +56,6 @@ int main(void){
     if (id_co<0) {perror("erreur conection");}
 
     User userb;
-    
     //Recoit son id
     recv(socketClient, &userb.id, 1, 0);
     printf("id client : %d \n", userb.id);
@@ -42,36 +65,29 @@ int main(void){
     fgets(userb.nom, BUFFER_SIZE, stdin);
     
     //Envoie son nom
-    int len_nom = strlen(userb.nom);
-    char* nom_court = (char*)malloc(len_nom);
-    strncpy(nom_court, userb.nom, len_nom-1);
-    
+    char* nom_court = format_string(userb.nom);    
     send(socketClient, nom_court, sizeof(nom_court), 0);
     
-    for (int num_mes=0; num_mes<MAX_MESSAGES; num_mes++){
-    	//reception d'un message venant du serveur
-    	//char question[25];
-    	//if (recv(socketClient, question, 25, 0) < 0){perror("erreur reception");}  	
-    	//printf("%s\n", question);
-
-    	//Envoie d'un message au serveur
-    	char mes[BUFFER_SIZE];
+    //Créer thread de reception des messages du serveur
+    pthread_t th_reception;
+    pthread_create(&th_reception, NULL, reception, (void*) &socketClient);
+    
+    int num_message=0;
+    while(1){
+  		//Envoie d'un message au serveur
+    	char message[BUFFER_SIZE];
     	printf("Que voulez vous envoyer ? ");
-    	fgets(mes, BUFFER_SIZE, stdin);
-    	
-    	int len_message = strlen(mes);
-    	char* message_court = (char*)malloc(len_message);
-    	strncpy(message_court, mes, len_message-1);	
-    	
+    	fgets(message, BUFFER_SIZE, stdin);
+    	char* message_court = format_string(message);
     	send(socketClient, message_court, BUFFER_SIZE, 0);
+    	num_message++;
+    	
     	if (strcmp(message_court, "fin")==0){
     	    break;
     	}
     	printf("message envoyé \n");
     }
-    
     printf("Déconnexion effectuée \n");
-    close(socketClient);
-  
+    close(socketClient); 
     return 0;
 }

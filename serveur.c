@@ -10,9 +10,7 @@
 #include <netdb.h>          
 
 /* A faire :
-	Fonction envoie_message qui envoie depuis le serveur à tous les clients
-	Client reçoit les messages
-	Faire une foncction format_message() qui reformate la longueur du message (cf client avant send()) + met les infos de qui l'envoie et à quelle heure.
+	Dans client.c, quand thread_client fermé (car 10 messages envoyés), faire que le thread_reception s'arrête aussi. Idée : créer variable globale et ||cond=!1 dans le if du while, mais pas sur, ou faire une condition et mutex, car en plus faut protéger accès à l'historique.
 	
 	
    Resolu:
@@ -26,6 +24,9 @@
    	Creer la matrice des messages et la remplire à la création
    	Condition d'arrêt du programme (et pourquoi si ctr C du client, message à l'infini du serveur)
    	Pourquoi dans liste_messages le dernier message envoyé écrase les autres ? solution : char***, malloc et strcpy. Par ce que c'est des adresses qu'on modifie et ça fout le bordel vite
+   	Fonction envoie_message qui envoie depuis le serveur à tous les clients -> vérifier qu'elle fonctionne
+	Client reçoit les messages -> boucle while(), regarder code Jajou
+	Faire une foncction format_message() qui reformate la longueur du message (cf client avant send()) + met les infos de qui l'envoie et à quelle heure. -> faite, regarder où il faut la mettre
  */
 
 
@@ -36,6 +37,7 @@
 int id_client = 0;
 //char *liste_messages[MAX_CLIENTS][MAX_MESSAGES];
 char*** liste_messages;
+int liste_sockets[MAX_CLIENTS];
 
 
 //Definir la structure client
@@ -43,6 +45,31 @@ typedef struct {
     int id;
     char nom[BUFFER_SIZE];
 } User;
+
+
+//Raccourcir les string obtenus avec fgets() pour enlever \0 qui casse tout
+char* format_string(char* string){
+    int len_string = strlen(string);
+    char* string_court = (char*)malloc(len_string);
+    strncpy(string_court, string, len_string-1);
+    return string_court;
+}
+
+
+void envoyer_message(char* message, int id_source, char* nom_source){
+	char* message_cat = malloc(strlen(message) + strlen(nom_source) + strlen("Message de ") + strlen(" : "));
+    strcat(message_cat, "Message de ");
+    strcat(message_cat, nom_source);
+    strcat(message_cat, " : ");
+    strcat(message_cat, message);
+    
+    for (int i=0; i<id_client; i++){
+    	if (i != id_source){
+    	    send(liste_sockets[i], message_cat, BUFFER_SIZE, 0);	
+    	}
+    }	   
+    free(message_cat);
+}
 
 
 void *th_client(void *arg){
@@ -60,37 +87,36 @@ void *th_client(void *arg){
     recv(socket, &userb.nom, BUFFER_SIZE, 0);
     printf("Le nom du client est %s et son identifiant est %d \n", userb.nom, userb.id);
     
+    
+    
     //Récupérer les messages du clients, jusqu'à MAX_MESSAGES messages
-    for (int num_mes=0; num_mes<MAX_MESSAGES; num_mes++){
-    	char mes[BUFFER_SIZE];
+    for (int num_message=0; num_message<MAX_MESSAGES; num_message++){
+    	char message[BUFFER_SIZE];
     	
     	//Couper la communication si pas de reception (càd ctr+C du client) ou si le client dit "fin" 
-    	if (recv(socket, &mes, BUFFER_SIZE, 0)==-1 || strcmp(mes, "fin")==0){
+    	if (recv(socket, &message, BUFFER_SIZE, 0)<0 || strcmp(message, "fin")==0){
     	    break ;
     	}
     	
-    	printf("le message du client %s est : %s \n", userb.nom, mes);
+    	printf("le message du client %s est : %s \n", userb.nom, message);
     	
     	//Sauvegarder le message dans la liste liste_message
     	char** liste_ligne = liste_messages[userb.id];
-    	strcpy(liste_ligne[num_mes], mes);
+    	strcpy(liste_ligne[num_message], message);
       	liste_messages[userb.id] = liste_ligne;
-      	
+      	      	
       	//Envoyer le message à tout le monde
-      	envoyer_message(mes, userb.id, userb.nom);
+      	envoyer_message(message, userb.id, userb.nom);
     	
     }
     //Lorsque le client a envoyé 10 messages ou demande la fin de la communication
     printf("finito bebe pour %s \n", userb.nom);
-    close(socket);
-    //free(arg);      //pas sur de quoi a quoi ca sert
+    	
+    free(arg);      
     pthread_exit(NULL);
 }
 
 
-void envoyer_message(char* message, int id_source, char* nom_source){
-    
-}
 
 int main(void){
 
@@ -134,6 +160,7 @@ int main(void){
         	exit(1);
         }
         printf("Nouvelle connexion effectuée \n");
+        liste_sockets[i] = socketClient;
        
         pthread_create(&clients[i], NULL, th_client, (void*)&socketClient);
     }
