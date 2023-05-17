@@ -10,7 +10,13 @@
 #include <netdb.h>          
 
 /* A faire :
-	Dans client.c, quand thread_client fermé (car 10 messages envoyés), faire que le thread_reception s'arrête aussi. Idée : créer variable globale et ||cond=!1 dans le if du while, mais pas sur, ou faire une condition et mutex, car en plus faut protéger accès à l'historique.
+	mutex liste_messages
+	meilleure affichage après la reception
+	tenter le ctr+C 
+	changer le finito bebe
+	
+	bonus : couper le serveur
+			envoyer des fichiers?
 	
 	
    Resolu:
@@ -27,6 +33,7 @@
    	Fonction envoie_message qui envoie depuis le serveur à tous les clients -> vérifier qu'elle fonctionne
 	Client reçoit les messages -> boucle while(), regarder code Jajou
 	Faire une foncction format_message() qui reformate la longueur du message (cf client avant send()) + met les infos de qui l'envoie et à quelle heure. -> faite, regarder où il faut la mettre
+	Dans client.c, quand thread_client fermé (car 10 messages envoyés), faire que le thread_reception s'arrête aussi. Idée : créer variable globale et ||cond=!1 dans le if du while, mais pas sur, ou faire une condition et mutex, car en plus faut protéger accès à l'historique.
  */
 
 
@@ -38,6 +45,7 @@ int id_client = 0;
 //char *liste_messages[MAX_CLIENTS][MAX_MESSAGES];
 char*** liste_messages;
 int liste_sockets[MAX_CLIENTS];
+int clients_connect[MAX_CLIENTS];
 
 
 //Definir la structure client
@@ -57,14 +65,19 @@ char* format_string(char* string){
 
 
 void envoyer_message(char* message, int id_source, char* nom_source){
-	char* message_cat = malloc(strlen(message) + strlen(nom_source) + strlen("Message de ") + strlen(" : "));
-    strcat(message_cat, "Message de ");
+	char str_id[3];
+	sprintf(str_id, "%d", id_source);
+		
+	char* message_cat = malloc(strlen(message) + strlen(nom_source) + strlen("Le message de ") + strlen(str_id) + strlen(", id = , est : "));
+    strcat(message_cat, "Le message de ");
     strcat(message_cat, nom_source);
-    strcat(message_cat, " : ");
+    strcat(message_cat, ", id = ");
+    strcat(message_cat, str_id);
+    strcat(message_cat, ", est : ");
     strcat(message_cat, message);
     
     for (int i=0; i<id_client; i++){
-    	if (i != id_source){
+    	if (i != id_source && clients_connect[i]){
     	    send(liste_sockets[i], message_cat, BUFFER_SIZE, 0);	
     	}
     }	   
@@ -78,6 +91,7 @@ void *th_client(void *arg){
     int socket = *(int*) arg;
     User userb; 
     userb.id = id_client;
+    clients_connect[id_client] = 1;
     
     //Envoyer son id au client
     send(socket, &id_client, 1,0);
@@ -93,8 +107,9 @@ void *th_client(void *arg){
     for (int num_message=0; num_message<MAX_MESSAGES; num_message++){
     	char message[BUFFER_SIZE];
     	
-    	//Couper la communication si pas de reception (càd ctr+C du client) ou si le client dit "fin" 
+    	//Couper la communication si pas de reception ou si le client dit "fin" 
     	if (recv(socket, &message, BUFFER_SIZE, 0)<0 || strcmp(message, "fin")==0){
+    		clients_connect[userb.id] = 0;
     	    break ;
     	}
     	
@@ -110,9 +125,7 @@ void *th_client(void *arg){
     	
     }
     //Lorsque le client a envoyé 10 messages ou demande la fin de la communication
-    printf("finito bebe pour %s \n", userb.nom);
-    	
-    free(arg);      
+    printf("finito bebe pour %s \n", userb.nom);          
     pthread_exit(NULL);
 }
 
@@ -121,7 +134,7 @@ void *th_client(void *arg){
 int main(void){
 
     //Créer le tableau des messages
-    liste_messages = malloc(MAX_CLIENTS * sizeof(char**));
+    listes_messages = malloc(MAX_CLIENTS * sizeof(char**));
     for (int i=0; i<MAX_CLIENTS; i++){
     	liste_messages[i] = malloc(MAX_MESSAGES * sizeof(char*));
     	    for (int j=0; j<MAX_MESSAGES; j++){
@@ -142,7 +155,12 @@ int main(void){
     //Connection de la socket a l'addresse serveur
     bind(socketServeur, (struct sockaddr *)&addrServeur, sizeof(addrServeur));       
     printf("bind : %d \n", socketServeur);
-
+	
+	//Liste des clients connectés
+	for (int i=0; i<MAX_CLIENTS; i++){
+		clients_connect[i] = 0;
+	}
+	
     //Serveur ecoute
     listen(socketServeur, MAX_CLIENTS);   //file d'attente au max de MAX_CLIENTS
     printf("Serveur ecoute \n");
