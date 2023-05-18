@@ -10,16 +10,17 @@
 #include <netdb.h>          
 
 /* A faire :
-	mutex liste_messages
-	meilleure affichage après la reception
-	tenter le ctr+C 
-	changer le finito bebe
-	
+	Reste un bug qui fait (rarement) que si un utilisateur se déconnecte son dernier message est envoyé en boucle
+
 	bonus : couper le serveur
 			envoyer des fichiers?
 	
 	
    Resolu:
+   meilleure affichage après la reception
+    mutex liste_messages
+	tenter le ctr+C 
+	changer le finito bebe
    	Pourquoi message vide au début
    	Pourquoi décalage affichage
    	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
@@ -37,9 +38,9 @@
  */
 
 
-#define MAX_CLIENTS 5
-#define MAX_MESSAGES 10
-#define BUFFER_SIZE 100
+#define MAX_CLIENTS 100
+#define MAX_MESSAGES 100
+#define BUFFER_SIZE 1000
 
 int id_client = 0;
 //char *liste_messages[MAX_CLIENTS][MAX_MESSAGES];
@@ -47,6 +48,8 @@ char*** liste_messages;
 int liste_sockets[MAX_CLIENTS];
 int clients_connect[MAX_CLIENTS];
 
+pthread_mutex_t mutex_ecriture; //Permet de ne pas envoyer deux messages en même temps pour ne pas faire de malloc tant que l'espace n'a pas été libéré
+pthread_mutex_t mutex_sauvegarde; //Permet de s'assurer que les messages soient bien sauvegardés les uns après les autres au cas ou deux messages sont envoyés en même temps
 
 //Definir la structure client
 typedef struct {
@@ -67,21 +70,23 @@ char* format_string(char* string){
 void envoyer_message(char* message, int id_source, char* nom_source){
 	char str_id[3];
 	sprintf(str_id, "%d", id_source);
-		
-	char* message_cat = malloc(strlen(message) + strlen(nom_source) + strlen("Le message de ") + strlen(str_id) + strlen(", id = , est : "));
-    strcat(message_cat, "Le message de ");
+	
+    pthread_mutex_lock(&mutex_ecriture);
+	char* message_cat = malloc(strlen(message) + strlen(nom_source) + strlen("Message reçu de ") + strlen(str_id) + strlen("(id =  ) : "));
+    strcat(message_cat, "Message reçu de ");
     strcat(message_cat, nom_source);
-    strcat(message_cat, ", id = ");
+    strcat(message_cat, " (id = ");
     strcat(message_cat, str_id);
-    strcat(message_cat, ", est : ");
+    strcat(message_cat, ") : ");
     strcat(message_cat, message);
     
     for (int i=0; i<id_client; i++){
-    	if (i != id_source && clients_connect[i]){
+    	if (i != id_source && clients_connect[i]){ //On envoie le message seulement aux autres clients et qui sont bien connectés
     	    send(liste_sockets[i], message_cat, BUFFER_SIZE, 0);	
     	}
     }	   
     free(message_cat);
+    pthread_mutex_unlock(&mutex_ecriture);
 }
 
 
@@ -94,14 +99,12 @@ void *th_client(void *arg){
     clients_connect[id_client] = 1;
     
     //Envoyer son id au client
-    send(socket, &id_client, 1,0);
+    send(socket, &userb.id, 1,0);
     id_client = id_client + 1;
     
     //Récupérer nom client
     recv(socket, &userb.nom, BUFFER_SIZE, 0);
     printf("Le nom du client est %s et son identifiant est %d \n", userb.nom, userb.id);
-    
-    
     
     //Récupérer les messages du clients, jusqu'à MAX_MESSAGES messages
     for (int num_message=0; num_message<MAX_MESSAGES; num_message++){
@@ -113,19 +116,21 @@ void *th_client(void *arg){
     	    break ;
     	}
     	
-    	printf("le message du client %s est : %s \n", userb.nom, message);
+    	printf("Message du client %s : %s \n", userb.nom, message);
     	
     	//Sauvegarder le message dans la liste liste_message
+        pthread_mutex_lock(&mutex_sauvegarde);
     	char** liste_ligne = liste_messages[userb.id];
     	strcpy(liste_ligne[num_message], message);
       	liste_messages[userb.id] = liste_ligne;
+        pthread_mutex_unlock(&mutex_sauvegarde);
       	      	
       	//Envoyer le message à tout le monde
       	envoyer_message(message, userb.id, userb.nom);
     	
     }
     //Lorsque le client a envoyé 10 messages ou demande la fin de la communication
-    printf("finito bebe pour %s \n", userb.nom);          
+    printf("%s s'est déconnecté \n", userb.nom);
     pthread_exit(NULL);
 }
 
@@ -163,7 +168,11 @@ int main(void){
 	
     //Serveur ecoute
     listen(socketServeur, MAX_CLIENTS);   //file d'attente au max de MAX_CLIENTS
-    printf("Serveur ecoute \n");
+    printf("Serveur en écoute \n");
+
+    //Initialisation du mutex d'écriture
+    pthread_mutex_init(&mutex_ecriture, NULL);
+    pthread_mutex_init(&mutex_sauvegarde, NULL);
 
     //Creer thread pour chaque client qui se connecte
     pthread_t clients[MAX_CLIENTS];
@@ -183,7 +192,7 @@ int main(void){
         pthread_create(&clients[i], NULL, th_client, (void*)&socketClient);
     }
 
-    //Fermer les clients
+    //Fermer les threads clients
     for (int i=0; i<MAX_CLIENTS; i++){
         pthread_join(clients[i], NULL);
     }
@@ -194,7 +203,7 @@ int main(void){
     		free(liste_messages[ligne][colonne]);}}
 
     close(socketServeur);
-    printf("Fermeture\n");
+    printf("Fermeture du serveur\n");
 
     return 0;
 }
