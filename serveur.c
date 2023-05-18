@@ -9,38 +9,10 @@
 #include <netinet/in.h>     
 #include <netdb.h>          
 
-/* A faire :
-	Reste un bug qui fait (rarement) que si un utilisateur se déconnecte son dernier message est envoyé en boucle
-
-	bonus : couper le serveur
-			envoyer des fichiers?
-	
-	
-   Resolu:
-   meilleure affichage après la reception
-    mutex liste_messages
-	tenter le ctr+C 
-	changer le finito bebe
-   	Pourquoi message vide au début
-   	Pourquoi décalage affichage
-   	transformer structure et mettre message en tant que string (il se peut que ça soit déjà le cas)
-   	remplacer scanf() par fgets() car stock un string et donc plusieurs mots. Corriger taille des char envoyés.
-   	Message envoyé fait max 8 charactères!!! problème : solution : utiliser BUFFER_SIZE plutot que sizeof(mes). Pourquoi ? je sais pas, mais ça marche mieux comme ça
-   	19/04
-   	Variable globale pour stocker les messages de tous les utilisateurs. Faire stucture qui est une matrice de messages.
-   	Creer la matrice des messages et la remplire à la création
-   	Condition d'arrêt du programme (et pourquoi si ctr C du client, message à l'infini du serveur)
-   	Pourquoi dans liste_messages le dernier message envoyé écrase les autres ? solution : char***, malloc et strcpy. Par ce que c'est des adresses qu'on modifie et ça fout le bordel vite
-   	Fonction envoie_message qui envoie depuis le serveur à tous les clients -> vérifier qu'elle fonctionne
-	Client reçoit les messages -> boucle while(), regarder code Jajou
-	Faire une foncction format_message() qui reformate la longueur du message (cf client avant send()) + met les infos de qui l'envoie et à quelle heure. -> faite, regarder où il faut la mettre
-	Dans client.c, quand thread_client fermé (car 10 messages envoyés), faire que le thread_reception s'arrête aussi. Idée : créer variable globale et ||cond=!1 dans le if du while, mais pas sur, ou faire une condition et mutex, car en plus faut protéger accès à l'historique.
- */
-
-
 #define MAX_CLIENTS 100
 #define MAX_MESSAGES 100
 #define BUFFER_SIZE 1000
+
 
 int id_client = 0;
 //char *liste_messages[MAX_CLIENTS][MAX_MESSAGES];

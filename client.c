@@ -47,12 +47,12 @@ void* reception(void* arg){
 			perror("erreur reception message du serveur");
 			exit(1);
     	}
-    	else {
-    		if (interruption){
+    	else {	//un message est reçu
+    		if (interruption){	//si le client a demandé l'interruption d'affichage
     			strcpy(messages_stock[nb_messages_stock], message_serveur);
     			nb_messages_stock++;
     		}
-    		else{
+    		else{	//si le client n'a pas demandé l'interruption de l'affichage
 				printf("\n%s \n\nQue voulez vous envoyer ? ", message_serveur);
 				fflush(stdout);
 			}
@@ -112,14 +112,6 @@ int main(void){
     	printf("Que voulez vous envoyer ? ");
     	fgets(message, BUFFER_SIZE, stdin);
     	char* message_court = format_string(message);
-    	
-		//Si on tape "interruption", la réception de message se met en pause
-		/*
-    	if (strcmp(message_court, "interruption")==0){
-			printf("Vous avez interrompu la réception de message jusqu'à ce que vous en envoyiez un nouveau\n");
-    		interruption = 1;
-    		continue;
-    	}*/
 
 		if (strcmp(message_court, "help")==0){
     	    printf("\nTapez 'fin' pour vous déconnecter.\nCTRL + C pour suspendre la réception de messages\n\n");
