@@ -99,7 +99,7 @@ void *th_client(void *arg){
     clients_connect[id_client] = 1;
     
     //Envoyer son id au client
-    send(socket, &userb.id, 1,0);
+    send(socket, &userb.id, sizeof(int),0);
     id_client = id_client + 1;
     
     //Récupérer nom client
@@ -139,7 +139,7 @@ void *th_client(void *arg){
 int main(void){
 
     //Créer le tableau des messages
-    listes_messages = malloc(MAX_CLIENTS * sizeof(char**));
+    liste_messages = malloc(MAX_CLIENTS * sizeof(char**));
     for (int i=0; i<MAX_CLIENTS; i++){
     	liste_messages[i] = malloc(MAX_MESSAGES * sizeof(char*));
     	    for (int j=0; j<MAX_MESSAGES; j++){

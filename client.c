@@ -10,9 +10,6 @@
 #include <netdb.h>
 #include <signal.h>    
 
-int interruption = 0;
-int nb_messages_stock= 0;
-char** messages_stock;
 #define BUFFER_SIZE 1000
 #define MAX_MESSAGES 100
 #define limite_msg_interrupt 100 //On peut recevoir jusqu'à 100 messages pendant l'interruption de réception
@@ -82,7 +79,7 @@ int main(void){
 
     User userb;
     //Recoit son id
-    recv(socketClient, &userb.id, 1, 0);
+    recv(socketClient, &userb.id, sizeof(int), 0);
     printf("id client : %d \n", userb.id);
 	
     //Demander le nom
