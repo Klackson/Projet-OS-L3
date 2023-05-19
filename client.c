@@ -88,7 +88,7 @@ int main(void){
     
     //Envoie son nom
     char* nom_court = format_string(userb.nom);    
-    send(socketClient, nom_court, sizeof(nom_court), 0);
+    send(socketClient, nom_court, BUFFER_SIZE, 0);
     
     //Créer thread de reception des messages du serveur
     pthread_t th_reception;

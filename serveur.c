@@ -15,7 +15,6 @@
 
 
 int id_client = 0;
-//char *liste_messages[MAX_CLIENTS][MAX_MESSAGES];
 char*** liste_messages;
 int liste_sockets[MAX_CLIENTS];
 int clients_connect[MAX_CLIENTS];
